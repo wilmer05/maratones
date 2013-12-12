@@ -1,0 +1,19 @@
+//Codigo de FTL
+//Algoritmo para crear un matching
+
+  bool find_match(int where) {
+     // the previous column was not matched
+     if (where == -1)
+       return true;
+     for (int i = 0; i < lst[where].size(); ++ i) {
+       int match = lst[where][i];
+       if (visited[match] == false) {
+         visited[match] = true;
+         if (find_match(col_match[match])) {
+           col_match[match] = where;
+           return true;
+         }
+       }
+     }
+     return false;
+   }

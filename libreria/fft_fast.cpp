@@ -28,47 +28,67 @@ using namespace std;
 //      rellenados
 
 //tipo de valores del num complejo
-typedef double tipo;
+ttypedef double tipo;
 
 typedef complex<tipo> comp;
 
 typedef vector<comp> vc;
 
+//parametro que le indica al fft si usa en inverso o no 
+double mult = 1.0;
+
+int rev(int val, int lg){
+    int ret = 0;
+    lg--;
+    while(val){
+        ret|=(val%2)<<lg;
+        val>>=1;
+        lg--;
+    }
+    return ret;
+}
+
 //el vector a debe ser de una longitud potencia de 2
 //mult = 1 FFt
 //mult = -1 lo usa el inv_fft
-vc fft(vc a, tipo mult){
+//el vector a debe ser de una longitud potencia de 2
+//mult = 1 FFt
+//mult = -1 lo usa el inv_fft
+vc fft(vc &a){
 
   int n = a.size();
-  if(n==1)
-    return a;
-
-  comp w(1.0,0),wn(cos(mult*2.0*M_PI/n),sin(mult*2*M_PI/n));
-  vc as[2];
-  for(int i=0;i<n;i++)
-    as[i%2].push_back(a[i]);
-    
-  vc ys[2];
   vc y(n);
-  ys[0] = fft(as[0],mult);
-  ys[1] = fft(as[1],mult);
+  int lg = 0;
 
-  vc ws(n);
-  for(int i =0;i<ws.size();i++){
-    ws[i] = comp(cos(mult*i*2.0*M_PI/n),sin(mult*i*2*M_PI/n)); 
-  }
+  while((1<<lg)<n) lg++;
 
   for(int i=0;i<n;i++){
-    y[i]=ys[0][i%(n/2)]+ws[i]*ys[1][i%(n/2)];
+    y[rev(i,lg)]=a[i];
   }
 
+  for(int i = 1; i <= lg; i++){
+    int m = 1<<i;
+    for(int k=0;k<n;k+=m){
+        for(int j=0;j<m/2;j++){
+            double angle = (mult*j*2.0*M_PI)/m;
+            comp w = comp(cos(angle),sin(angle));;
+            comp t = w * y[k+j+m/2];
+            comp u = y[k+j];
+            y[k+j]=u+t;
+            y[k+j+m/2]=u-t;
+        }
+    }
+  }
   return y; 
 }
 
 //se encarga de calcular el DFT-1 de coeficientes
-vc inv_fft(vc a){
-  vc ret = fft(a,-1);
-  for(int i=0;i<ret.size();i++) ret[i]/=a.size();
+vc inv_fft(vc &a){
+  mult = -1.0;
+  vc ret = fft(a);
+  int n = ret.size();
+  for(int i=0;i<n;i++) ret[i]/=n;
+  mult = 1.0;
   return ret;
 }
 
@@ -90,9 +110,11 @@ comp eval(vc v, comp val){
 //      p = a0 + a1*X + a2*X^2 + ...
 //      el vector de sus coeficientes debe ser (a0,a1,a2,...)
 
-vc get_coef(vc A, vc B){
-    vc y1 = fft(A,1);
-    vc y2 = fft(B,1);
+vc get_coef(vc &A, vc &B){
+    vc y1 = fft(A);
+    //cout << y1.size() << endl;
+    //FOR(i,y1.size()) cout << y1[i] << endl;
+    vc y2 = fft(B);
 
     for(int i=0;i<y1.size();i++) 
         y1[i]*=y2[i];
@@ -102,6 +124,8 @@ vc get_coef(vc A, vc B){
 
 //ejemplo
 int main(){
+    //for(int i=0;i<8;i++)
+    //    cout << i << " " << rev(i,3) << endl;
   vc co1,co2;
   co1 = vc(8,0);
   co1[0]=1;co1[3]=0;
@@ -116,11 +140,11 @@ int main(){
     cin >> val;
     
     vc ans = get_coef(co1,co2);
-    for(int i=0;i<ans.size();i++) cout << ((ans[i])) << endl;
+    for(int i=0;i<ans.size();i++) cout << i << " " << ((ans[i])) << endl;    
     cout << eval(get_coef(co1,co2),val) << endl;
 
 
-  
+  //for(int i=0;i<ans.size();i++) cout << ((ans[i])) << endl;
   /*comp s;
   for(int i=0;i<ans.size();i++) s+=ans[i];
   cout <<"suma= " << norm(s) << endl;
